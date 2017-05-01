@@ -293,6 +293,99 @@ public class MergeJoinTest {
     }
 
     @Test
+    public void testMergeJoinMustSeekFirstIter() throws Exception {
+
+        // force the iterator associated with the first predicate to advance
+        // due to the the initial object of the first iterator preceding the
+        // initial object of the secondary iterator
+
+        RyaURI predA = new RyaURI(litdupsNS, "predA");
+        RyaURI predB = new RyaURI(litdupsNS, "predB");
+
+        RyaURI subj1 = new RyaURI(litdupsNS, "subj1");
+        RyaURI subj2 = new RyaURI(litdupsNS, "subj2");
+
+        RyaType one = new RyaType("1");
+        RyaType two = new RyaType("2");
+
+        dao.add(new RyaStatement(subj1, predA, one));
+        dao.add(new RyaStatement(subj2, predA, two));
+        dao.add(new RyaStatement(subj2, predB, two));
+
+        MergeJoin mergeJoin = new MergeJoin(dao.getQueryEngine());
+        CloseableIteration<RyaStatement, RyaDAOException> joined = mergeJoin.join(null, predA, predB);
+
+        assertTrue(joined.hasNext());
+        assertEquals(two, joined.next().getObject());
+        assertFalse(joined.hasNext());
+    }
+
+    @Test
+    public void testMergeJoinMustSeekSecondaryIter() throws Exception {
+
+        // force the iterator associated with the second predicate to advance
+        // due to the the initial object of the second iterator preceding the
+        // initial object of the first iterator
+
+        RyaURI predA = new RyaURI(litdupsNS, "predA");
+        RyaURI predB = new RyaURI(litdupsNS, "predB");
+
+        RyaURI subj1 = new RyaURI(litdupsNS, "subj1");
+        RyaURI subj2 = new RyaURI(litdupsNS, "subj2");
+
+
+        RyaType zero = new RyaType("0");
+        RyaType one = new RyaType("1");
+
+        // first iterator
+        dao.add(new RyaStatement(subj1, predA, one));
+
+        // second iterator
+        dao.add(new RyaStatement(subj2, predB, zero));
+        dao.add(new RyaStatement(subj1, predB, one));
+
+        MergeJoin mergeJoin = new MergeJoin(dao.getQueryEngine());
+        CloseableIteration<RyaStatement, RyaDAOException> joined = mergeJoin.join(null, predA, predB);
+
+        assertTrue(joined.hasNext());
+        assertEquals(one, joined.next().getObject());
+        assertFalse(joined.hasNext());
+    }
+
+    @Test
+    public void testMergeJoinMustSeekSecondaryThenFirstIter() throws Exception {
+
+        RyaURI predA = new RyaURI(litdupsNS, "predA");
+        RyaURI predB = new RyaURI(litdupsNS, "predB");
+
+        RyaURI subj1 = new RyaURI(litdupsNS, "subj1");
+        RyaURI subj2 = new RyaURI(litdupsNS, "subj2");
+        RyaURI subj3 = new RyaURI(litdupsNS, "subj3");
+
+
+        RyaType zero = new RyaType("0");
+        RyaType one = new RyaType("1");
+        RyaType two = new RyaType("2");
+        RyaType three = new RyaType("3");
+
+        // first iterator
+        dao.add(new RyaStatement(subj1, predA, one));
+        dao.add(new RyaStatement(subj3, predA, three));
+
+        // second iterator
+        dao.add(new RyaStatement(subj2, predB, zero));
+        dao.add(new RyaStatement(subj1, predB, two));
+        dao.add(new RyaStatement(subj3, predB, three));
+
+        MergeJoin mergeJoin = new MergeJoin(dao.getQueryEngine());
+        CloseableIteration<RyaStatement, RyaDAOException> joined = mergeJoin.join(null, predA, predB);
+
+        assertTrue(joined.hasNext());
+        assertEquals(three, joined.next().getObject());
+        assertFalse(joined.hasNext());
+    }
+
+    @Test
     public void testMergeJoinMultiWayNone() throws Exception {
         //add data
         RyaURI pred = new RyaURI(litdupsNS, "pred1");
